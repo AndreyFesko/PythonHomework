@@ -1,117 +1,86 @@
-import math
+import config
+import sys
 
 
-def arithmetic(a, b, chr):
-    if chr == '^':
-        return a**b
-    if chr == '*':
-        return a*b
-    if chr == '/':
-        return a/b
-    if chr == '//':
-        return a//b
-    if chr == '%':
-        return a%b
-    if chr == '+':
-        return a+b
-    if chr == '-':
-        return a-b
+def arithmetic(a, b, token):
+    """Simple calculation."""
+    return config.characters[token](a, b)
 
 
-def functions(a, func, b=None):
-    if func == 'sin':
-        return math.sin(a)
-    if func == 'cos':
-        return math.cos(a)
-    if func == 'tan':
-        return math.tan(a)
-    if func == 'asin':
-        return math.asin(a)
-    if func == 'acos':
-        return math.acos(a)
-    if func == 'atan':
-        return math.atan(a)
-    if func == 'sinh':
-        return math.sinh(a)
-    if func == 'cosh':
-        return math.cosh(a)
-    if func == 'tanh':
-        return math.tanh(a)
-    if func == 'asinh':
-        return math.asinh(a)
-    if func == 'acosh':
-        return math.acosh(a)
-    if func == 'atanh':
-        return math.atanh(a)
-    if func == 'degrees':
-        return math.degrees(a)
-    if func == 'radians':
-        return math.radians(a)
-    if func == 'hypot':
-        return math.hypot(a, b)
-    if func == 'ceil':
-        return math.ceil(a)
-    if func == 'copysign':
-        return math.copysign(a, b)
-    if func == 'fabs':
-        return math.fabs(a)
-    if func == 'factorial':
-        return math.factorial(a)
-    if func == 'floor':
-        return math.floor(a)
-    if func == 'fmod':
-        return math.fmod(a, b)
-    if func == 'frexp':
-        return math.frexp(a)
-    if func == 'ldexp':
-        return math.ldexp(a, b)
-    if func == 'fsum':
-        return math.fsum(a)
-    if func == 'isfinite':
-        return math.isfinite(a)
-    if func == 'isinf':
-        return math.isinf(a)
-    if func == 'isnan':
-        return math.isnan(a)
-    if func == 'modf':
-        return math.modf(a)
-    if func == 'trunc':
-        return math.trunc(a)
-    if func == 'expm1':
-        return math.expm1(a)
-    if func == 'log':
-        if b != None:
-            return math.log(a, b)
-        else:
-            return math.log(a)
-    if func == 'log1p':
-        return math.log1p(a)
-    if func == 'log10':
-        return math.log10(a)
-    if func == 'log2':
-        return math.log2(a)
-    if func == 'exp':
-        return math.exp(a)
-    if func == 'pow':
-        return math.pow(a, b)
-    if func == 'sqrt':
-        return math.sqrt(a)
-    if func == 'erf':
-        return math.erf(a)
-    if func == 'erfc':
-        return math.erfc(a)
-    if func == 'gamma':
-        return math.gamma(a)
-    if func == 'lgamma':
-        return math.lgamma(a)
-    if func == 'abs':
-        return abs(a)
-    if func == 'round':
-        return round(a, b)
+def functions(token, *args):
+    """Calculation math and trigonometry functions."""
+    try:
+        return config.all_functions[token](*args)
+    except KeyError:
+        print('ERROR: this function is not supported.!')
+        sys.exit(1)
+    except TypeError:
+        print('ERROR: invalid number of arguments!')
+        sys.exit(1)
+    except ValueError:
+        print('ERROR: incorrect value!')
+        sys.exit(1)
+    except OverflowError:
+        print('ERROR: results that overflow!')
+        sys.exit(1)
 
 
-def constants_calculation(chr):
-    if chr == 'pi':
-        return math.pi
-    if chr == 'e':
-        return math.e
+def constants_calculation(token):
+    """Return the value of a constant."""
+    return config.constants[token]
+
+
+def comparison_calculation(a, b, token):
+    """Calculation simple logic expression."""
+    return config.comparison[token](a, b)
+
+
+def object_type(obj):
+    """Sets various objects to data types for calculations."""
+    try:
+        if type(obj) == str:
+            if obj[0] == '[':
+                array = []
+                for token in obj:
+                    if token.isdigit():
+                        array.append(object_type(token))
+                return array
+            elif obj == 'True' or obj == 'False':
+                return bool(obj)
+            elif '.' in obj:
+                return float(obj)
+            return int(obj)
+        return obj
+    except ValueError:
+        print('ERROR: unknown object - ' + obj)
+        sys.exit(1)
+
+
+def pop_calculated_items(array, first_index, second_index, length):
+    """
+    Pulls out items to replace them with calculated ones.
+
+    Description: Due to the complexity of the operation of cyclical pulling elements by indexes(O(n)).
+    Implemented an automatic change of the following array elements to the offset delta.
+    """
+    index = first_index
+    for token in array[second_index:]:
+        array[index] = token
+        index += 1
+    for i in range(length):
+        array.pop()
+    return array
+
+
+def replace_minus_and_negative_numbers(array):
+    """
+    Technical function. Replaces all the disadvantages in a simple expression by a plus,
+    and the value makes it negative. In order to equate the priority of minus and plus.
+
+    Example: 2-1+3 = -2 -->  2+(-1)+3 = 4
+    """
+    for idx, token in enumerate(array):
+        if token == '-' and array[idx+1][-1].isdigit():
+            array[idx] = '+'
+            array[idx+1] = str(-object_type(array[idx+1]))
+    return array
